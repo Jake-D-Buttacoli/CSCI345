@@ -1,7 +1,12 @@
+package server;
+
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
-  
+
+/**
+ * Example code given by professor
+ */
 class UDPServer { 
   public static void main(String args[]) throws Exception 
     { 
