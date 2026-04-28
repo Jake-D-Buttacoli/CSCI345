@@ -39,6 +39,16 @@ class Client {
 
             outToServer.writeBytes(loginJson + "\n");
 
+            String response = inFromServer.readLine();
+            if (response.contains("login_success")) {
+                System.out.println("Login successful.");
+            } else {
+                System.out.println("Login failed: " + response);
+                clientSocket.close();
+                scanner.close();
+                return;
+            }
+
            
             new Thread(() -> {
                 try {
