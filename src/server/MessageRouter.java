@@ -1,5 +1,7 @@
 package server;
 
+import shared.Message;
+
 /**
  * Controls the message traffic.
  * Sends a message to a specific user or to all.
@@ -19,10 +21,12 @@ public class MessageRouter {
             return;
         }
 
-        String json = "{\"type\":\"message\",\"from\":\"" + from +
-                "\",\"content\":\"" + content + "\"}";
+        Message msg = new Message();
+        msg.type = "message";
+        msg.from = from;
+        msg.content = content;
 
-        target.send(json);
+        target.send(msg);
     }
 
     /**
@@ -31,11 +35,13 @@ public class MessageRouter {
      * @param content message
      */
     public static void sendMessageBroadcast(String from, String content) {
-        String json = "{\"type\":\"broadcast\",\"from\":\"" + from +
-                "\",\"content\":\"" + content + "\"}";
+        Message msg = new Message();
+        msg.type = "broadcast";
+        msg.from = from;
+        msg.content = content;
 
         for (ClientHandler client : Server.clients.values()) {
-            client.send(json);
+            client.send(msg);
         }
     }
 }

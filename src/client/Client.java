@@ -3,6 +3,8 @@ package client;
 import java.io.*;
 import java.net.*;
 import java.util.Scanner;
+import com.google.gson.Gson;
+import shared.Message;
 
 /**
  * Connects to the server.
@@ -13,6 +15,7 @@ class Client {
     public static void main(String[] args) {
         try {
             Scanner scanner = new Scanner(System.in);
+            Gson gson = new Gson();
 
 
             Socket clientSocket = new Socket("localhost", 6789);
@@ -34,11 +37,12 @@ class Client {
             System.out.print("Password: ");
             String password = scanner.nextLine();
 
-            String loginJson = "{\"type\":\"login\",\"username\":\"" + username +
-                               "\",\"password\":\"" + password + "\"}";
+            Message loginMsg = new Message();
+            loginMsg.type = "login";
+            loginMsg.username = username;
+            loginMsg.password = password;
 
-            outToServer.writeBytes(loginJson + "\n");
-
+            outToServer.writeBytes(gson.toJson(loginMsg) + "\n");
 
             new Thread(() -> {      // Separate thread for listening to server. Immediately prints.
                 try {
@@ -64,17 +68,18 @@ class Client {
                 System.out.print("Message: ");
                 String content = scanner.nextLine();
 
-                String msgJson; // = "{\"type\":\"message\",\"to\":\"" + toUser +
-                                //  "\",\"content\":\"" + content + "\"}";
+                Message msg = new Message();
 
-                if (toUser.equalsIgnoreCase("all")) { // Broadcast case
-                    msgJson = "{\"type\":\"broadcast\",\"content\":\"" + content + "\"}";
-                } else { // Regular direct message
-                    msgJson = "{\"type\":\"message\",\"to\":\"" + toUser +
-                            "\",\"content\":\"" + content + "\"}";
+                if (toUser.equalsIgnoreCase("all")) {
+                    msg.type = "broadcast";
+                    msg.content = content;
+                } else {
+                    msg.type = "message";
+                    msg.to = toUser;
+                    msg.content = content;
                 }
 
-                outToServer.writeBytes(msgJson + "\n");
+                outToServer.writeBytes(gson.toJson(msg) + "\n");
             }
 
             clientSocket.close();
