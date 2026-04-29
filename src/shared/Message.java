@@ -5,10 +5,18 @@ package shared;
  * Representing the message info.
  */
 public class Message {
-    String type;
-    String username;
-    String password;
-    String to;
-    String content;
-    String filename;
+    public String type;
+
+    // login
+    public String username;
+    public String password;
+
+    // messaging
+    public String to;
+    public String from;
+    public String content;
+
+    // file transfer
+    public String filename;
+    public String fileData; // base64 encode
 }
