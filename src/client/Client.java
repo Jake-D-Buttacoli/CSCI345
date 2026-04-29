@@ -46,6 +46,19 @@ class Client {
 
             outToServer.writeBytes(gson.toJson(loginMsg) + "\n");
 
+            // WAIT for login response
+            String responseLine = inFromServer.readLine();
+            Message response = gson.fromJson(responseLine, Message.class);
+
+            if (response.type.equals("login_success")) {
+                System.out.println("Login successful!");
+            } else {
+                System.out.println("Login failed. Disconnected.");
+                clientSocket.close();
+                scanner.close();
+                return;
+            }
+
             new Thread(() -> {      // Separate thread for listening to server. Immediately prints.
                 try {
                     String line;
@@ -70,7 +83,7 @@ class Client {
                         System.out.print("To (or 'all' or 'file' or 'quit'): ");
                     }
                 } catch (IOException e) {
-                    System.out.println("Disconnected due to I/O Exception.");
+                    System.out.println("Disconnected.");
                 }
             }).start();
 
