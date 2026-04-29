@@ -13,7 +13,7 @@ public class Server {
     private static final int DEFAULT_PORT = 6789;
 
     /**
-     * A map to store a list of clients with their usernames
+     * A map to store a list of all currently logged in clients with their usernames
      */
     public static final Map<String, ClientHandler> clients = new ConcurrentHashMap<>();
 
