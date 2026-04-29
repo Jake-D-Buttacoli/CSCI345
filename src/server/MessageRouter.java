@@ -44,4 +44,28 @@ public class MessageRouter {
             client.send(msg);
         }
     }
+
+    /**
+     * Sends the file in text format, since sockets send text. Takes already encoded file.
+     * @param from Sender
+     * @param to Receiver
+     * @param filename What to call the file
+     * @param fileData Safe text version of file, encoded to Base64
+     */
+    public static void sendFile(String from, String to, String filename, String fileData) {
+        ClientHandler target = Server.clients.get(to);
+
+        if (target == null) {
+            System.out.println("User " + to + " is not online.");
+            return;
+        }
+
+        Message msg = new Message();
+        msg.type = "file";
+        msg.from = from;
+        msg.filename = filename;
+        msg.fileData = fileData;
+
+        target.send(msg);
+    }
 }

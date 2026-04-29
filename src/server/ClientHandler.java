@@ -25,6 +25,9 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
     }
 
+    /**
+     * Begins running the new clientHandler thread
+     */
     @Override
     public void run() {
         try {
@@ -46,6 +49,11 @@ public class ClientHandler implements Runnable {
         }
     }
 
+    /**
+     *  Handles the client requests. Login, Direct messages / file transfers, Broadcasts, & Disconnections
+     * @param jsonString Receives the clients request
+     * @throws IOException May encounter an exception when sending json
+     */
     private void handleMessage(String jsonString) throws IOException {
         Message msg = gson.fromJson(jsonString, Message.class);
 
@@ -70,6 +78,15 @@ public class ClientHandler implements Runnable {
 
             case "broadcast":
                 MessageRouter.sendMessageBroadcast(username, msg.content);
+                break;
+
+            case "file":
+                if (!authenticated) {
+                    sendJson(error("Please login first"));
+                    return;
+                }
+
+                MessageRouter.sendFile(username, msg.to, msg.filename, msg.fileData);
                 break;
 
             case "disconnect":
