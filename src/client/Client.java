@@ -14,7 +14,7 @@ class Client {
         try {
             Scanner scanner = new Scanner(System.in);
 
-            
+
             Socket clientSocket = new Socket("localhost", 6789);
 
             BufferedReader inFromServer = new BufferedReader(
@@ -27,7 +27,7 @@ class Client {
 
             System.out.println("Connected to server.");
 
-            
+
             System.out.print("Username: ");
             String username = scanner.nextLine();
 
@@ -39,22 +39,21 @@ class Client {
 
             outToServer.writeBytes(loginJson + "\n");
 
-           
-            new Thread(() -> {
+
+            new Thread(() -> {      // Separate thread for listening to server. Immediately prints.
                 try {
                     String msg;
                     while ((msg = inFromServer.readLine()) != null) {
                         System.out.println("\nFROM SERVER: " + msg);
-                        System.out.print("To (or 'quit'): ");
                     }
                 } catch (IOException e) {
                     System.out.println("Disconnected.");
                 }
             }).start();
 
-            
+
             while (true) {
-                System.out.print("To (or 'quit'): ");
+                System.out.print("To (or 'all' or 'quit'): ");
                 String toUser = scanner.nextLine();
 
                 if (toUser.equalsIgnoreCase("quit")) {
@@ -65,8 +64,15 @@ class Client {
                 System.out.print("Message: ");
                 String content = scanner.nextLine();
 
-                String msgJson = "{\"type\":\"message\",\"to\":\"" + toUser +
-                                 "\",\"content\":\"" + content + "\"}";
+                String msgJson; // = "{\"type\":\"message\",\"to\":\"" + toUser +
+                                //  "\",\"content\":\"" + content + "\"}";
+
+                if (toUser.equalsIgnoreCase("all")) { // Broadcast case
+                    msgJson = "{\"type\":\"broadcast\",\"content\":\"" + content + "\"}";
+                } else { // Regular direct message
+                    msgJson = "{\"type\":\"message\",\"to\":\"" + toUser +
+                            "\",\"content\":\"" + content + "\"}";
+                }
 
                 outToServer.writeBytes(msgJson + "\n");
             }

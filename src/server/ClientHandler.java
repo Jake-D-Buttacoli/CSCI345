@@ -16,6 +16,8 @@ public class ClientHandler implements Runnable {
     private static final Pattern TYPE_PATTERN = Pattern.compile("\"type\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern USERNAME_PATTERN = Pattern.compile("\"username\"\\s*:\\s*\"([^\"]+)\"");
     private static final Pattern PASSWORD_PATTERN = Pattern.compile("\"password\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern TO_PATTERN = Pattern.compile("\"to\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern CONTENT_PATTERN = Pattern.compile("\"content\"\\s*:\\s*\"([^\"]+)\"");
 
     private final Socket socket;
     private BufferedReader in;
@@ -36,7 +38,7 @@ public class ClientHandler implements Runnable {
 
             String message;
             while (connected && (message = in.readLine()) != null) {
-                handleMessage(message);
+                handleMessage(message); // Commands: login, message, broadcast, disconnect
             }
         } catch (Exception e) {
             if (!connected) {
@@ -62,6 +64,25 @@ public class ClientHandler implements Runnable {
 
         if ("login".equals(type)) {
             handleLogin(message);
+            return;
+        }
+
+        if ("message".equals(type)) {
+            String to = extractValue(TO_PATTERN, message);
+            String content = extractValue(CONTENT_PATTERN, message);
+
+            if (to == null || content == null) {
+                sendJson("{\"type\":\"error\",\"message\":\"Invalid message format\"}");
+                return;
+            }
+
+            MessageRouter.sendMessageToUser(username, to, content);
+            return;
+        }
+
+        if ("broadcast".equals(type)) {
+            String content = extractValue(CONTENT_PATTERN, message);
+            MessageRouter.sendMessageBroadcast(username, content);
             return;
         }
 
@@ -104,6 +125,14 @@ public class ClientHandler implements Runnable {
 
     private void sendJson(String json) throws IOException {
         out.writeBytes(json + "\n");
+    }
+
+    public void send(String json) { // Publicly used by the message router
+        try {
+            sendJson(json);
+        } catch (IOException e) {
+            System.out.println(" -!- Failed to send message to " + username);
+        }
     }
 
     private String extractValue(Pattern pattern, String message) {
