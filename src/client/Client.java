@@ -1,82 +1,82 @@
 package client;
 
 import java.io.*;
-import java.net.*;
-import java.util.Scanner;
+import java.net.Socket;
+import com.google.gson.Gson;
+import shared.Message;
 
-/**
- * Connects to the server.
- * Sends & Recieves messages.
- */
-class Client {
+public class Client {
 
-    public static void main(String[] args) {
-        try {
-            Scanner scanner = new Scanner(System.in);
+    private Socket clientSocket;
+    private BufferedReader inFromServer;
+    private DataOutputStream outToServer;
+    private final Gson gson = new Gson();
 
-            
-            Socket clientSocket = new Socket("localhost", 6789);
+    public interface MessageListener {
+        void onMessageReceived(Message msg);
+    }
 
-            BufferedReader inFromServer = new BufferedReader(
-                    new InputStreamReader(clientSocket.getInputStream())
-            );
+    public boolean connectAndLogin(String username, String password) throws IOException {
+        clientSocket = new Socket("localhost", 6789);
 
-            DataOutputStream outToServer = new DataOutputStream(
-                    clientSocket.getOutputStream()
-            );
+        inFromServer = new BufferedReader(
+                new InputStreamReader(clientSocket.getInputStream())
+        );
 
-            System.out.println("Connected to server.");
+        outToServer = new DataOutputStream(clientSocket.getOutputStream());
 
-            
-            System.out.print("Username: ");
-            String username = scanner.nextLine();
+        Message loginMsg = new Message();
+        loginMsg.type = "login";
+        loginMsg.username = username;
+        loginMsg.password = password;
 
-            System.out.print("Password: ");
-            String password = scanner.nextLine();
+        outToServer.writeBytes(gson.toJson(loginMsg) + "\n");
 
-            String loginJson = "{\"type\":\"login\",\"username\":\"" + username +
-                               "\",\"password\":\"" + password + "\"}";
+        String responseLine = inFromServer.readLine();
+        Message response = gson.fromJson(responseLine, Message.class);
 
-            outToServer.writeBytes(loginJson + "\n");
+        return response != null && "login_success".equals(response.type);
+    }
 
-           
-            new Thread(() -> {
-                try {
-                    String msg;
-                    while ((msg = inFromServer.readLine()) != null) {
-                        System.out.println("\nFROM SERVER: " + msg);
-                        System.out.print("To (or 'quit'): ");
-                    }
-                } catch (IOException e) {
-                    System.out.println("Disconnected.");
-                }
-            }).start();
+    public void startListening(MessageListener listener) {
+        new Thread(() -> {
+            try {
+                String line;
 
-            
-            while (true) {
-                System.out.print("To (or 'quit'): ");
-                String toUser = scanner.nextLine();
-
-                if (toUser.equalsIgnoreCase("quit")) {
-                    outToServer.writeBytes("{\"type\":\"disconnect\"}\n");
-                    break;
+                while ((line = inFromServer.readLine()) != null) {
+                    Message msg = gson.fromJson(line, Message.class);
+                    listener.onMessageReceived(msg);
                 }
 
-                System.out.print("Message: ");
-                String content = scanner.nextLine();
-
-                String msgJson = "{\"type\":\"message\",\"to\":\"" + toUser +
-                                 "\",\"content\":\"" + content + "\"}";
-
-                outToServer.writeBytes(msgJson + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
+        }).start();
+    }
 
-            clientSocket.close();
-            scanner.close();
+    public boolean sendMessage(String toUser, String content) {
+        try {
+            Message msg = new Message();
+            msg.type = "message";
+            msg.to = toUser;
+            msg.content = content;
+
+            outToServer.writeBytes(gson.toJson(msg) + "\n");
+            return true;
 
         } catch (IOException e) {
-            System.out.println("Error connecting to server.");
             e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void disconnect() throws IOException {
+        if (outToServer != null) {
+            outToServer.writeBytes("{\"type\":\"disconnect\"}\n");
+        }
+
+        if (clientSocket != null) {
+            clientSocket.close();
         }
     }
 }
