@@ -5,14 +5,16 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.Socket;
+
 import com.google.gson.Gson;
 import shared.Message;
 
 /**
  * One per each client.
- * Handles incoming messages, parsing the JSON, the routing calls, & sending responses.
+ * Handles incoming messages, parsing the JSON, routing calls, and sending responses.
  */
 public class ClientHandler implements Runnable {
+
     private final Gson gson = new Gson();
 
     private final Socket socket;
@@ -25,39 +27,43 @@ public class ClientHandler implements Runnable {
         this.socket = socket;
     }
 
-    /**
-     * Begins running the new clientHandler thread
-     */
     @Override
     public void run() {
         try {
-            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(socket.getInputStream())
+            );
+
             out = new DataOutputStream(socket.getOutputStream());
 
             String message;
             while (connected && (message = in.readLine()) != null) {
-                handleMessage(message); // Commands: login, message, broadcast, disconnect
+                handleMessage(message);
             }
+
         } catch (Exception e) {
-            if (!connected) { return; }
-            if (e instanceof IOException && e.getMessage() != null && e.getMessage().contains("Broken pipe")) {
+            if (!connected) {
+                return;
+            }
+
+            if (e instanceof IOException
+                    && e.getMessage() != null
+                    && e.getMessage().contains("Broken pipe")) {
                 cleanup();
                 return;
-            } e.printStackTrace();
+            }
+
+            e.printStackTrace();
+
         } finally {
             cleanup();
         }
     }
 
-    /**
-     *  Handles the client requests. Login, Direct messages / file transfers, Broadcasts, & Disconnections
-     * @param jsonString Receives the clients request
-     * @throws IOException May encounter an exception when sending json
-     */
     private void handleMessage(String jsonString) throws IOException {
         Message msg = gson.fromJson(jsonString, Message.class);
 
-        if (msg.type == null) {
+        if (msg == null || msg.type == null) {
             sendJson(error("Invalid message format"));
             return;
         }
@@ -73,10 +79,16 @@ public class ClientHandler implements Runnable {
                     sendJson(error("Please login first"));
                     return;
                 }
+
                 MessageRouter.sendMessageToUser(username, msg.to, msg.content);
                 break;
 
             case "broadcast":
+                if (!authenticated) {
+                    sendJson(error("Please login first"));
+                    return;
+                }
+
                 MessageRouter.sendMessageBroadcast(username, msg.content);
                 break;
 
@@ -95,6 +107,7 @@ public class ClientHandler implements Runnable {
 
             default:
                 sendJson(error("Unknown message type"));
+                break;
         }
     }
 
@@ -120,6 +133,18 @@ public class ClientHandler implements Runnable {
         sendJson(simple("login_success"));
     }
 
+    public void send(Message msg) {
+        try {
+            sendJson(gson.toJson(msg));
+        } catch (IOException e) {
+            System.out.println("Failed to send to " + username);
+        }
+    }
+
+    private void sendJson(String json) throws IOException {
+        out.writeBytes(json + "\n");
+    }
+
     private String simple(String type) {
         Message m = new Message();
         m.type = type;
@@ -132,30 +157,6 @@ public class ClientHandler implements Runnable {
         m.content = message;
         return gson.toJson(m);
     }
-
-    public void send(Message msg) {
-        try {
-            String json = gson.toJson(msg);
-            sendJson(json);
-        } catch (IOException e) {
-            System.out.println("Failed to send to " + username);
-        }
-    }
-
-    private void sendJson(String json) throws IOException {
-        out.writeBytes(json + "\n");
-    }
-
-    /*
-    // Idk what this is for.
-    private String safeUsername() {
-        return username == null ? "unknown" : escapeJson(username);
-    }
-
-    private String escapeJson(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-     */
 
     private void cleanup() {
         connected = false;

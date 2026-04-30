@@ -11,7 +11,6 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class Server {
     private static final int DEFAULT_PORT = 6789;
-
     /**
      * A map to store a list of all currently logged in clients with their usernames
      */

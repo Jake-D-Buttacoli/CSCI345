@@ -1,9 +1,5 @@
 package shared;
 
-/**
- * Simple helper class.
- * Representing the message info.
- */
 public class Message {
     public String type;
 
@@ -11,12 +7,12 @@ public class Message {
     public String username;
     public String password;
 
-    // messaging
-    public String to;
+    // chat messages
     public String from;
+    public String to;
     public String content;
 
-    // file transfer
+    // file messages
     public String filename;
-    public String fileData; // base64 encode
+    public String fileData;
 }
